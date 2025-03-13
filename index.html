@@ -38,6 +38,16 @@
             animation: glowBig 1s infinite alternate;
             filter: drop-shadow(0 0 10px gold);
         }
+        .estrella-arcoiris {
+            font-size: 35px;
+            animation: glowRainbow 1.5s infinite alternate;
+            filter: drop-shadow(0 0 15px cyan);
+        }
+        .estrella-galaxi {
+            font-size: 40px;
+            animation: glowGalaxy 2s infinite alternate;
+            filter: drop-shadow(0 0 20px purple);
+        }
         @keyframes glow {
             0% { text-shadow: 0 0 5px yellow; transform: scale(1); }
             100% { text-shadow: 0 0 15px yellow; transform: scale(1.2); }
@@ -46,13 +56,17 @@
             0% { text-shadow: 0 0 10px gold; transform: scale(1); }
             100% { text-shadow: 0 0 25px gold; transform: scale(1.3); }
         }
-        #buscador {
-            width: 60%;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            border: 2px solid black;
-            border-radius: 5px;
+        @keyframes glowRainbow {
+            0% { text-shadow: 0 0 10px red; }
+            25% { text-shadow: 0 0 10px orange; }
+            50% { text-shadow: 0 0 10px yellow; }
+            75% { text-shadow: 0 0 10px green; }
+            100% { text-shadow: 0 0 10px blue; }
+        }
+        @keyframes glowGalaxy {
+            0% { text-shadow: 0 0 10px purple; }
+            50% { text-shadow: 0 0 15px indigo; }
+            100% { text-shadow: 0 0 20px violet; }
         }
     </style>
 </head>
@@ -82,7 +96,6 @@
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47, text.length - 2));
                 const rows = json.table.rows;
-                console.log("Datos recibidos de Google Sheets:", rows);
                 const tabla = document.getElementById("tablaPuntos");
                 tabla.innerHTML = "";
                 
@@ -109,7 +122,28 @@
                     let rango = "";
                     let recompensa = "";
                     
-                    if (puntos >= 50) {
+                    let numEstrellas = Math.floor(puntos / 10);
+                    let estrellasGrandes = Math.floor(numEstrellas / 3);
+                    let estrellasPequeñas = numEstrellas % 3;
+                    
+                    for (let i = 0; i < estrellasGrandes; i++) {
+                        recompensa += "<span class='estrella-30'>🌟</span>";
+                    }
+                    for (let i = 0; i < estrellasPequeñas; i++) {
+                        recompensa += "<span class='estrella-10'>⭐</span>";
+                    }
+                    
+                    if (puntos >= 90) {
+                        rango = "🌈🔥 Gran maestro arcoiris";
+                        recompensa += "<span class='estrella-galaxi'>🌌</span>";
+                    } else if (puntos >= 80) {
+                        rango = "🌈 Heroico arcoiris";
+                        recompensa += "<span class='estrella-arcoiris'>🌈</span>";
+                    } else if (puntos >= 70) {
+                        rango = "🟠🔥 Heroico élite";
+                    } else if (puntos >= 60) {
+                        rango = "🟡 Heroico";
+                    } else if (puntos >= 50) {
                         rango = "🔴 Gran Maestro";
                     } else if (puntos >= 40) {
                         rango = "🟠 Maestro";
@@ -123,17 +157,6 @@
                         rango = "⚪ Sin rango";
                     }
                     
-                    let numEstrellas = Math.floor(puntos / 10);
-                    let estrellasGrandes = Math.floor(numEstrellas / 3);
-                    let estrellasPequeñas = numEstrellas % 3;
-                    
-                    for (let i = 0; i < estrellasGrandes; i++) {
-                        recompensa += "<span class='estrella-30'>🌟</span>";
-                    }
-                    for (let i = 0; i < estrellasPequeñas; i++) {
-                        recompensa += "<span class='estrella-10'>⭐</span>";
-                    }
-                    
                     let fila = `<tr class='fila-alumno'>
                         <td>${nombre}</td>
                         <td>${puntos}</td>
@@ -145,20 +168,6 @@
             } catch (error) {
                 console.error("Error al cargar los datos:", error);
                 document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='4'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
-            }
-        }
-        
-        function filtrarAlumnos() {
-            let input = document.getElementById("buscador").value.toLowerCase();
-            let filas = document.getElementsByClassName("fila-alumno");
-            
-            for (let i = 0; i < filas.length; i++) {
-                let nombre = filas[i].getElementsByTagName("td")[0].textContent.toLowerCase();
-                if (nombre.includes(input)) {
-                    filas[i].style.display = "";
-                } else {
-                    filas[i].style.display = "none";
-                }
             }
         }
         
