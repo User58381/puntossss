@@ -5,13 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tabla de Puntos</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Sans+MS&display=swap');
         body {
-            font-family: 'Comic Neue', cursive;
+            font-family: 'Comic Sans MS', cursive;
             text-align: center;
             background: url('./imagenes/fondo.jpg') no-repeat center center fixed;
             background-size: cover;
             color: white;
+        }
+        #fecha {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            display: inline-block;
+            border-radius: 10px;
+        }
+        h1 {
+            font-size: 32px;
+            text-shadow: 2px 2px 4px black;
         }
         table {
             width: 80%;
@@ -52,6 +65,8 @@
 </head>
 <body>
     <h1>Tabla de Puntos</h1>
+    <div id="fecha"></div>
+    <br>
     <input type="text" id="buscador" placeholder="Buscar alumno..." onkeyup="filtrarAlumnos()">
     <table>
         <thead>
@@ -68,6 +83,12 @@
     </table>
 
     <script>
+        function actualizarFecha() {
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fechaHoy = new Date().toLocaleDateString('es-ES', opcionesFecha);
+            document.getElementById("fecha").innerHTML = `📅 Hoy es: <b>${fechaHoy}</b>`;
+        }
+
         async function cargarPuntos() {
             const sheetId = "1RrXV3mI1qiFnA_GSsH9yB3AfN6OlVtGNrSwlmTf_k34";
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
@@ -83,20 +104,29 @@
                     tabla.innerHTML = `<tr><td colspan='4'>No hay datos disponibles</td></tr>`;
                     return;
                 }
-                
+
                 let alumnos = {};
+                let fechaHoy = new Date().toISOString().split('T')[0]; // Obtener la fecha actual en formato YYYY-MM-DD
                 
                 rows.forEach((row) => {
+                    let fechaRegistro = row.c[0]?.v || ""; // Fecha en la columna A
                     let nombre = row.c[1]?.v || "Alumno";
-                    let puntos = (!isNaN(parseInt(row.c[0]?.v))) ? parseInt(row.c[0].v) * 10 : 10;
+                    let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10; // Puntos en la columna C
                     
-                    if (alumnos[nombre]) {
-                        alumnos[nombre] += puntos;
-                    } else {
-                        alumnos[nombre] = puntos;
+                    if (fechaRegistro.startsWith(fechaHoy)) { // Comparar con la fecha de hoy
+                        if (alumnos[nombre]) {
+                            alumnos[nombre] += puntos;
+                        } else {
+                            alumnos[nombre] = puntos;
+                        }
                     }
                 });
                 
+                if (Object.keys(alumnos).length === 0) {
+                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos registrados hoy</td></tr>`;
+                    return;
+                }
+
                 Object.keys(alumnos).forEach(nombre => {
                     let puntos = alumnos[nombre];
                     let rango = "";
@@ -160,6 +190,7 @@
             });
         }
         
+        actualizarFecha();
         cargarPuntos();
     </script>
 </body>
