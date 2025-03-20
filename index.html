@@ -55,10 +55,11 @@
                 <th>Alumno</th>
                 <th>Puntos</th>
                 <th>Rango</th>
+                <th>Recompensas</th>
             </tr>
         </thead>
         <tbody id="tablaPuntos">
-            <tr><td colspan="3">Cargando datos...</td></tr>
+            <tr><td colspan="4">Cargando datos...</td></tr>
         </tbody>
     </table>
 
@@ -69,9 +70,11 @@
             document.getElementById("fecha").innerHTML = `📅 Hoy es: <b>${fechaHoy}</b>`;
         }
 
-        function convertirFechaExcel(numeroSerie) {
-            let fechaBase = new Date(1899, 11, 30);
-            return new Date(fechaBase.getTime() + numeroSerie * 86400000).toISOString().split('T')[0];
+        function limpiarFormatoFecha(fecha) {
+            if (typeof fecha === "string") {
+                return fecha.split(" ")[0]; // Elimina la hora si está presente
+            }
+            return fecha;
         }
 
         async function cargarPuntos() {
@@ -81,18 +84,18 @@
                 const response = await fetch(url);
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47, text.length - 2));
-                console.log(json); // Para verificar qué datos estamos recibiendo
+                console.log(json); // Para depuración
                 const rows = json.table.rows;
                 const tabla = document.getElementById("tablaPuntos");
                 tabla.innerHTML = "";
                 
                 if (!rows.length) {
-                    tabla.innerHTML = `<tr><td colspan='3'>No hay datos disponibles</td></tr>`;
+                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos disponibles</td></tr>`;
                     return;
                 }
 
                 let alumnos = {};
-                let fechaHoy = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
+                let fechaHoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
                 
                 rows.forEach((row) => {
                     let fechaRegistro = row.c[0]?.v; // Fecha en la columna A
@@ -101,9 +104,8 @@
 
                     if (!fechaRegistro) return;
 
-                    // Si la fecha está en formato de número de serie de Excel, convertirla
-                    let fechaConvertida = typeof fechaRegistro === "number" ? convertirFechaExcel(fechaRegistro) : fechaRegistro;
-                    
+                    let fechaConvertida = limpiarFormatoFecha(fechaRegistro);
+
                     if (fechaConvertida === fechaHoy) { // Comparar con la fecha de hoy
                         if (alumnos[nombre]) {
                             alumnos[nombre] += puntos;
@@ -114,18 +116,32 @@
                 });
                 
                 if (Object.keys(alumnos).length === 0) {
-                    tabla.innerHTML = `<tr><td colspan='3'>No hay datos registrados hoy</td></tr>`;
+                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos registrados hoy</td></tr>`;
                     return;
                 }
 
                 Object.keys(alumnos).forEach(nombre => {
                     let puntos = alumnos[nombre];
                     let rango = "";
+                    let recompensa = "";
+
+                    let numEstrellas = Math.floor(puntos / 10);
+                    let estrellasGrandes = Math.floor(numEstrellas / 3);
+                    let estrellasPequeñas = numEstrellas % 3;
+
+                    for (let i = 0; i < estrellasGrandes; i++) {
+                        recompensa += "<span style='font-size:30px'>🌟</span>";
+                    }
+                    for (let i = 0; i < estrellasPequeñas; i++) {
+                        recompensa += "<span style='font-size:20px'>⭐</span>";
+                    }
 
                     if (puntos >= 90) {
                         rango = "🌈🔥 Gran maestro arcoiris";
+                        recompensa += "<span style='font-size:40px'>🌌</span>";
                     } else if (puntos >= 80) {
                         rango = "🌈 Heroico arcoiris";
+                        recompensa += "<span style='font-size:35px'>🌈</span>";
                     } else if (puntos >= 70) {
                         rango = "🟠🔥 Heroico élite";
                     } else if (puntos >= 60) {
@@ -148,12 +164,13 @@
                         <td>${nombre}</td>
                         <td>${puntos}</td>
                         <td>${rango}</td>
+                        <td>${recompensa}</td>
                     </tr>`;
                     tabla.innerHTML += fila;
                 });
             } catch (error) {
                 console.error("Error al cargar los datos:", error);
-                document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='3'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
+                document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='4'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
             }
         }
         
