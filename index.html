@@ -59,8 +59,8 @@
     <h1>Tabla de Puntos</h1>
     <div id="fecha"></div>
     <br>
-    <input type="date" id="filtroFecha" onchange="filtrarPorFecha()">
-    <input type="text" id="buscador" placeholder="Buscar alumno..." onkeyup="filtrarAlumnos()">
+    <input type="date" id="filtroFecha" onchange="filtrarTabla()">
+    <input type="text" id="buscador" placeholder="Buscar alumno..." onkeyup="filtrarTabla()">
     
     <table>
         <thead>
@@ -110,27 +110,17 @@
                     return;
                 }
 
-                let alumnos = {};
-
                 rows.forEach((row) => {
                     let fecha = row.c[0]?.v || "";
                     let nombre = row.c[1]?.v || "Alumno";
                     let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10;
                     let fechaConvertida = convertirFecha(fecha);
 
-                    if (alumnos[nombre]) {
-                        alumnos[nombre].puntos += puntos;
-                    } else {
-                        alumnos[nombre] = { fecha: fechaConvertida, puntos };
-                    }
-                });
-
-                Object.entries(alumnos).forEach(([nombre, { fecha, puntos }]) => {
                     let rango = obtenerRango(puntos);
                     let recompensa = obtenerRecompensas(puntos);
 
                     let fila = `<tr>
-                        <td>${fecha}</td>
+                        <td>${fechaConvertida}</td>
                         <td>${nombre}</td>
                         <td>${puntos}</td>
                         <td class="brillo">${rango}</td>
@@ -149,7 +139,7 @@
             let match = fecha.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
             if (match) {
                 let anio = parseInt(match[1]);
-                let mes = parseInt(match[2]) + 1; // Meses en JS van de 0 a 11
+                let mes = parseInt(match[2]) + 1;
                 let dia = parseInt(match[3]);
                 return `${anio}-${mes.toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
             }
@@ -178,13 +168,19 @@
             return recompensa;
         }
 
-        function filtrarAlumnos() {
-            let filtro = document.getElementById("buscador").value.toLowerCase().trim();
+        function filtrarTabla() {
+            let filtroFecha = document.getElementById("filtroFecha").value;
+            let filtroNombre = document.getElementById("buscador").value.toLowerCase().trim();
             let filas = document.querySelectorAll("#tablaPuntos tr");
 
             filas.forEach(fila => {
+                let fecha = fila.cells[0]?.innerText || "";
                 let nombre = fila.cells[1]?.innerText.toLowerCase() || "";
-                fila.style.display = nombre.includes(filtro) ? "" : "none";
+                
+                let coincideFecha = filtroFecha === "" || fecha === filtroFecha;
+                let coincideNombre = filtroNombre === "" || nombre.includes(filtroNombre);
+
+                fila.style.display = coincideFecha && coincideNombre ? "" : "none";
             });
         }
 
