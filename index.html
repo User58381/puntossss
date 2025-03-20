@@ -70,11 +70,16 @@
             document.getElementById("fecha").innerHTML = `📅 Hoy es: <b>${fechaHoy}</b>`;
         }
 
-        function limpiarFormatoFecha(fecha) {
-            if (typeof fecha === "string") {
-                return fecha.split(" ")[0]; // Elimina la hora si está presente
+        function extraerFecha(fechaTexto) {
+            // Eliminar la hora y convertir a formato YYYY-MM-DD
+            let partes = fechaTexto.split(" ")[0].split("/");
+            if (partes.length === 3) {
+                let dia = partes[0].padStart(2, "0");
+                let mes = partes[1].padStart(2, "0");
+                let año = partes[2];
+                return `${año}-${mes}-${dia}`;
             }
-            return fecha;
+            return null;
         }
 
         async function cargarPuntos() {
@@ -104,7 +109,7 @@
 
                     if (!fechaRegistro) return;
 
-                    let fechaConvertida = limpiarFormatoFecha(fechaRegistro);
+                    let fechaConvertida = extraerFecha(fechaRegistro);
 
                     if (fechaConvertida === fechaHoy) { // Comparar con la fecha de hoy
                         if (alumnos[nombre]) {
