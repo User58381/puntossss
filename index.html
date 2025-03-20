@@ -174,8 +174,13 @@
             let estrellasGrandes = Math.floor(puntos / 30);
             let estrellasPequeñas = Math.floor((puntos % 30) / 10);
             let recompensa = "✨";
+
             for (let i = 0; i < estrellasGrandes; i++) recompensa += "🌟";
             for (let i = 0; i < estrellasPequeñas; i++) recompensa += "⭐";
+
+            if (puntos >= 70) recompensa += " 🌌"; // Agrega la estrella galaxi
+            if (puntos >= 90) recompensa += " 🌈"; // Agrega el arcoiris
+
             return recompensa;
         }
 
@@ -187,10 +192,8 @@
             filas.forEach(fila => {
                 let fecha = fila.cells[0]?.innerText || "";
                 let nombre = fila.cells[1]?.innerText.toLowerCase() || "";
-                
                 let coincideFecha = filtroFecha === "" || fecha === filtroFecha;
                 let coincideNombre = filtroNombre === "" || nombre.includes(filtroNombre);
-
                 fila.style.display = coincideFecha && coincideNombre ? "" : "none";
             });
         }
