@@ -97,8 +97,6 @@
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47, text.length - 2));
 
-                console.log("Datos obtenidos de Google Sheets:", json);
-
                 if (!json.table || !json.table.rows || !Array.isArray(json.table.rows)) {
                     throw new Error("Formato de datos incorrecto en Google Sheets.");
                 }
@@ -180,12 +178,13 @@
             return recompensa;
         }
 
-        function filtrarPorFecha() {
-            let fechaFiltro = document.getElementById("filtroFecha").value;
+        function filtrarAlumnos() {
+            let filtro = document.getElementById("buscador").value.toLowerCase().trim();
             let filas = document.querySelectorAll("#tablaPuntos tr");
+
             filas.forEach(fila => {
-                let fecha = fila.cells[0]?.innerText || "";
-                fila.style.display = fecha.includes(fechaFiltro) ? "" : "none";
+                let nombre = fila.cells[1]?.innerText.toLowerCase() || "";
+                fila.style.display = nombre.includes(filtro) ? "" : "none";
             });
         }
 
