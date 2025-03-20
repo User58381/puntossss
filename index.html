@@ -42,25 +42,6 @@
         th {
             background: gold;
         }
-        .estrella-10 {
-            animation: glow 1s infinite alternate;
-            filter: drop-shadow(0 0 5px yellow);
-        }
-        .estrella-30 {
-            font-size: 30px;
-            animation: glowBig 1s infinite alternate;
-            filter: drop-shadow(0 0 10px gold);
-        }
-        .estrella-arcoiris {
-            font-size: 35px;
-            animation: glowRainbow 1.5s infinite alternate;
-            filter: drop-shadow(0 0 15px cyan);
-        }
-        .estrella-galaxi {
-            font-size: 40px;
-            animation: glowGalaxy 2s infinite alternate;
-            filter: drop-shadow(0 0 20px purple);
-        }
     </style>
 </head>
 <body>
@@ -74,11 +55,10 @@
                 <th>Alumno</th>
                 <th>Puntos</th>
                 <th>Rango</th>
-                <th>Recompensas</th>
             </tr>
         </thead>
         <tbody id="tablaPuntos">
-            <tr><td colspan="4">Cargando datos...</td></tr>
+            <tr><td colspan="3">Cargando datos...</td></tr>
         </tbody>
     </table>
 
@@ -89,6 +69,11 @@
             document.getElementById("fecha").innerHTML = `📅 Hoy es: <b>${fechaHoy}</b>`;
         }
 
+        function convertirFechaExcel(numeroSerie) {
+            let fechaBase = new Date(1899, 11, 30);
+            return new Date(fechaBase.getTime() + numeroSerie * 86400000).toISOString().split('T')[0];
+        }
+
         async function cargarPuntos() {
             const sheetId = "1RrXV3mI1qiFnA_GSsH9yB3AfN6OlVtGNrSwlmTf_k34";
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
@@ -96,24 +81,30 @@
                 const response = await fetch(url);
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47, text.length - 2));
+                console.log(json); // Para verificar qué datos estamos recibiendo
                 const rows = json.table.rows;
                 const tabla = document.getElementById("tablaPuntos");
                 tabla.innerHTML = "";
                 
                 if (!rows.length) {
-                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos disponibles</td></tr>`;
+                    tabla.innerHTML = `<tr><td colspan='3'>No hay datos disponibles</td></tr>`;
                     return;
                 }
 
                 let alumnos = {};
-                let fechaHoy = new Date().toISOString().split('T')[0]; // Obtener la fecha actual en formato YYYY-MM-DD
+                let fechaHoy = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
                 
                 rows.forEach((row) => {
-                    let fechaRegistro = row.c[0]?.v || ""; // Fecha en la columna A
-                    let nombre = row.c[1]?.v || "Alumno";
+                    let fechaRegistro = row.c[0]?.v; // Fecha en la columna A
+                    let nombre = row.c[1]?.v || "Alumno"; // Nombre en la columna B
                     let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10; // Puntos en la columna C
+
+                    if (!fechaRegistro) return;
+
+                    // Si la fecha está en formato de número de serie de Excel, convertirla
+                    let fechaConvertida = typeof fechaRegistro === "number" ? convertirFechaExcel(fechaRegistro) : fechaRegistro;
                     
-                    if (fechaRegistro.startsWith(fechaHoy)) { // Comparar con la fecha de hoy
+                    if (fechaConvertida === fechaHoy) { // Comparar con la fecha de hoy
                         if (alumnos[nombre]) {
                             alumnos[nombre] += puntos;
                         } else {
@@ -123,32 +114,18 @@
                 });
                 
                 if (Object.keys(alumnos).length === 0) {
-                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos registrados hoy</td></tr>`;
+                    tabla.innerHTML = `<tr><td colspan='3'>No hay datos registrados hoy</td></tr>`;
                     return;
                 }
 
                 Object.keys(alumnos).forEach(nombre => {
                     let puntos = alumnos[nombre];
                     let rango = "";
-                    let recompensa = "";
-                    
-                    let numEstrellas = Math.floor(puntos / 10);
-                    let estrellasGrandes = Math.floor(numEstrellas / 3);
-                    let estrellasPequeñas = numEstrellas % 3;
-                    
-                    for (let i = 0; i < estrellasGrandes; i++) {
-                        recompensa += "<span class='estrella-30'>🌟</span>";
-                    }
-                    for (let i = 0; i < estrellasPequeñas; i++) {
-                        recompensa += "<span class='estrella-10'>⭐</span>";
-                    }
-                    
+
                     if (puntos >= 90) {
                         rango = "🌈🔥 Gran maestro arcoiris";
-                        recompensa += "<span class='estrella-galaxi'>🌌</span>";
                     } else if (puntos >= 80) {
                         rango = "🌈 Heroico arcoiris";
-                        recompensa += "<span class='estrella-arcoiris'>🌈</span>";
                     } else if (puntos >= 70) {
                         rango = "🟠🔥 Heroico élite";
                     } else if (puntos >= 60) {
@@ -167,17 +144,16 @@
                         rango = "⚪ Sin rango";
                     }
                     
-                    let fila = `<tr class='fila-alumno'>
+                    let fila = `<tr>
                         <td>${nombre}</td>
                         <td>${puntos}</td>
                         <td>${rango}</td>
-                        <td>${recompensa}</td>
                     </tr>`;
                     tabla.innerHTML += fila;
                 });
             } catch (error) {
                 console.error("Error al cargar los datos:", error);
-                document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='4'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
+                document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='3'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
             }
         }
         
