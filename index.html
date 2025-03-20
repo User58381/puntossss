@@ -42,13 +42,24 @@
         th {
             background: gold;
         }
+        .brillo {
+            animation: brillo 1s infinite alternate;
+        }
+        @keyframes brillo {
+            from {
+                text-shadow: 0 0 5px gold, 0 0 10px yellow;
+            }
+            to {
+                text-shadow: 0 0 10px gold, 0 0 20px yellow;
+            }
+        }
     </style>
 </head>
 <body>
     <h1>Tabla de Puntos</h1>
     <div id="fecha"></div>
     <br>
-    <input type="date" id="filtroFecha" onchange="cargarPuntos()">
+    <input type="date" id="filtroFecha" onchange="filtrarPorFecha()">
     <input type="text" id="buscador" placeholder="Buscar alumno..." onkeyup="filtrarAlumnos()">
     
     <table>
@@ -75,7 +86,8 @@
 
         async function cargarPuntos() {
             const sheetId = "1RrXV3mI1qiFnA_GSsH9yB3AfN6OlVtGNrSwlmTf_k34";
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+            const sheetName = "Respuestas de formulario 1";
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&tq&sheet=${encodeURIComponent(sheetName)}`;
 
             try {
                 const response = await fetch(url);
@@ -83,9 +95,9 @@
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
                 const text = await response.text();
-
-                // Google Sheets devuelve una respuesta con un prefijo antes del JSON real
                 const json = JSON.parse(text.substring(47, text.length - 2));
+
+                console.log("Datos obtenidos de Google Sheets:", json);
 
                 if (!json.table || !json.table.rows || !Array.isArray(json.table.rows)) {
                     throw new Error("Formato de datos incorrecto en Google Sheets.");
@@ -100,71 +112,31 @@
                     return;
                 }
 
-                let fechaSeleccionada = document.getElementById("filtroFecha").value;
-                let alumnos = [];
+                let alumnos = {};
 
                 rows.forEach((row) => {
                     let fecha = row.c[0]?.v || "";
                     let nombre = row.c[1]?.v || "Alumno";
                     let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10;
+                    let fechaConvertida = convertirFecha(fecha);
 
-                    // Convertir fecha al formato YYYY-MM-DD si no está vacía
-                    let fechaConvertida = fecha ? new Date(fecha).toISOString().split("T")[0] : "";
-
-                    if (!fechaSeleccionada || fechaConvertida === fechaSeleccionada) {
-                        alumnos.push({ fecha: fechaConvertida, nombre, puntos });
+                    if (alumnos[nombre]) {
+                        alumnos[nombre].puntos += puntos;
+                    } else {
+                        alumnos[nombre] = { fecha: fechaConvertida, puntos };
                     }
                 });
 
-                if (alumnos.length === 0) {
-                    tabla.innerHTML = `<tr><td colspan='5'>No hay datos para la fecha seleccionada</td></tr>`;
-                    return;
-                }
-
-                alumnos.forEach(({ fecha, nombre, puntos }) => {
-                    let rango = "";
-                    let recompensa = "";
-
-                    let numEstrellasGrandes = Math.floor(puntos / 30);
-                    let numEstrellasPequeñas = Math.floor((puntos % 30) / 10);
-
-                    for (let i = 0; i < numEstrellasGrandes; i++) {
-                        recompensa += "🌟";
-                    }
-                    for (let i = 0; i < numEstrellasPequeñas; i++) {
-                        recompensa += "⭐";
-                    }
-
-                    if (puntos >= 90) {
-                        rango = "🌈🔥 Gran maestro arcoiris";
-                        recompensa += "🌌";
-                    } else if (puntos >= 80) {
-                        rango = "🌈 Heroico arcoiris";
-                        recompensa += "🌈";
-                    } else if (puntos >= 70) {
-                        rango = "🟠🔥 Heroico élite";
-                    } else if (puntos >= 60) {
-                        rango = "🟡 Heroico";
-                    } else if (puntos >= 50) {
-                        rango = "🔴 Gran Maestro";
-                    } else if (puntos >= 40) {
-                        rango = "🟠 Maestro";
-                    } else if (puntos >= 30) {
-                        rango = "🟣 Experto";
-                    } else if (puntos >= 20) {
-                        rango = "🔵 Avanzado";
-                    } else if (puntos >= 10) {
-                        rango = "🟢 Trabajador";
-                    } else {
-                        rango = "⚪ Sin rango";
-                    }
+                Object.entries(alumnos).forEach(([nombre, { fecha, puntos }]) => {
+                    let rango = obtenerRango(puntos);
+                    let recompensa = obtenerRecompensas(puntos);
 
                     let fila = `<tr>
                         <td>${fecha}</td>
                         <td>${nombre}</td>
                         <td>${puntos}</td>
-                        <td>${rango}</td>
-                        <td>${recompensa}</td>
+                        <td class="brillo">${rango}</td>
+                        <td class="brillo">${recompensa}</td>
                     </tr>`;
                     tabla.innerHTML += fila;
                 });
@@ -174,13 +146,46 @@
             }
         }
 
-        function filtrarAlumnos() {
-            let input = document.getElementById("buscador").value.toLowerCase();
-            let filas = document.querySelectorAll("#tablaPuntos tr");
+        function convertirFecha(fecha) {
+            if (!fecha) return "Sin fecha";
+            let match = fecha.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+            if (match) {
+                let anio = parseInt(match[1]);
+                let mes = parseInt(match[2]) + 1; // Meses en JS van de 0 a 11
+                let dia = parseInt(match[3]);
+                return `${anio}-${mes.toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
+            }
+            return fecha;
+        }
 
+        function obtenerRango(puntos) {
+            if (puntos >= 90) return "🌈🔥 Gran maestro arcoiris";
+            if (puntos >= 80) return "🌈 Heroico arcoiris";
+            if (puntos >= 70) return "🟠🔥 Heroico élite";
+            if (puntos >= 60) return "🟡 Heroico";
+            if (puntos >= 50) return "🔴 Gran Maestro";
+            if (puntos >= 40) return "🟠 Maestro";
+            if (puntos >= 30) return "🟣 Experto";
+            if (puntos >= 20) return "🔵 Avanzado";
+            if (puntos >= 10) return "🟢 Trabajador";
+            return "⚪ Sin rango";
+        }
+
+        function obtenerRecompensas(puntos) {
+            let estrellasGrandes = Math.floor(puntos / 30);
+            let estrellasPequeñas = Math.floor((puntos % 30) / 10);
+            let recompensa = "✨";
+            for (let i = 0; i < estrellasGrandes; i++) recompensa += "🌟";
+            for (let i = 0; i < estrellasPequeñas; i++) recompensa += "⭐";
+            return recompensa;
+        }
+
+        function filtrarPorFecha() {
+            let fechaFiltro = document.getElementById("filtroFecha").value;
+            let filas = document.querySelectorAll("#tablaPuntos tr");
             filas.forEach(fila => {
-                let nombre = fila.cells[1]?.innerText.toLowerCase() || "";
-                fila.style.display = nombre.includes(input) ? "" : "none";
+                let fecha = fila.cells[0]?.innerText || "";
+                fila.style.display = fecha.includes(fechaFiltro) ? "" : "none";
             });
         }
 
