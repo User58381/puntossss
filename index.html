@@ -42,6 +42,34 @@
         th {
             background: gold;
         }
+        .recompensa {
+            display: inline-block;
+            animation: brillar 1s infinite alternate;
+        }
+        @keyframes brillar {
+            0% { filter: drop-shadow(0 0 5px yellow); }
+            100% { filter: drop-shadow(0 0 15px gold); }
+        }
+        .estrella-10 {
+            font-size: 20px;
+            animation: brillar 1s infinite alternate;
+            filter: drop-shadow(0 0 5px yellow);
+        }
+        .estrella-30 {
+            font-size: 30px;
+            animation: brillar 1s infinite alternate;
+            filter: drop-shadow(0 0 10px gold);
+        }
+        .estrella-arcoiris {
+            font-size: 35px;
+            animation: brillar 1.5s infinite alternate;
+            filter: drop-shadow(0 0 15px cyan);
+        }
+        .estrella-galaxi {
+            font-size: 40px;
+            animation: brillar 2s infinite alternate;
+            filter: drop-shadow(0 0 20px purple);
+        }
     </style>
 </head>
 <body>
@@ -70,18 +98,6 @@
             document.getElementById("fecha").innerHTML = `📅 Hoy es: <b>${fechaHoy}</b>`;
         }
 
-        function extraerFecha(fechaTexto) {
-            // Eliminar la hora y convertir a formato YYYY-MM-DD
-            let partes = fechaTexto.split(" ")[0].split("/");
-            if (partes.length === 3) {
-                let dia = partes[0].padStart(2, "0");
-                let mes = partes[1].padStart(2, "0");
-                let año = partes[2];
-                return `${año}-${mes}-${dia}`;
-            }
-            return null;
-        }
-
         async function cargarPuntos() {
             const sheetId = "1RrXV3mI1qiFnA_GSsH9yB3AfN6OlVtGNrSwlmTf_k34";
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
@@ -89,7 +105,7 @@
                 const response = await fetch(url);
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47, text.length - 2));
-                console.log(json); // Para depuración
+                console.log("Datos recibidos de Google Sheets:", json);
                 const rows = json.table.rows;
                 const tabla = document.getElementById("tablaPuntos");
                 tabla.innerHTML = "";
@@ -100,53 +116,38 @@
                 }
 
                 let alumnos = {};
-                let fechaHoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-                
                 rows.forEach((row) => {
-                    let fechaRegistro = row.c[0]?.v; // Fecha en la columna A
-                    let nombre = row.c[1]?.v || "Alumno"; // Nombre en la columna B
-                    let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10; // Puntos en la columna C
-
-                    if (!fechaRegistro) return;
-
-                    let fechaConvertida = extraerFecha(fechaRegistro);
-
-                    if (fechaConvertida === fechaHoy) { // Comparar con la fecha de hoy
-                        if (alumnos[nombre]) {
-                            alumnos[nombre] += puntos;
-                        } else {
-                            alumnos[nombre] = puntos;
-                        }
+                    let nombre = row.c[1]?.v || "Alumno";
+                    let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10;
+                    
+                    if (alumnos[nombre]) {
+                        alumnos[nombre] += puntos;
+                    } else {
+                        alumnos[nombre] = puntos;
                     }
                 });
-                
-                if (Object.keys(alumnos).length === 0) {
-                    tabla.innerHTML = `<tr><td colspan='4'>No hay datos registrados hoy</td></tr>`;
-                    return;
-                }
 
                 Object.keys(alumnos).forEach(nombre => {
                     let puntos = alumnos[nombre];
                     let rango = "";
                     let recompensa = "";
-
-                    let numEstrellas = Math.floor(puntos / 10);
-                    let estrellasGrandes = Math.floor(numEstrellas / 3);
-                    let estrellasPequeñas = numEstrellas % 3;
-
-                    for (let i = 0; i < estrellasGrandes; i++) {
-                        recompensa += "<span style='font-size:30px'>🌟</span>";
+                    
+                    let numEstrellasGrandes = Math.floor(puntos / 30);
+                    let numEstrellasPequeñas = Math.floor((puntos % 30) / 10);
+                    
+                    for (let i = 0; i < numEstrellasGrandes; i++) {
+                        recompensa += "<span class='estrella-30'>🌟</span>";
                     }
-                    for (let i = 0; i < estrellasPequeñas; i++) {
-                        recompensa += "<span style='font-size:20px'>⭐</span>";
+                    for (let i = 0; i < numEstrellasPequeñas; i++) {
+                        recompensa += "<span class='estrella-10'>⭐</span>";
                     }
-
+                    
                     if (puntos >= 90) {
                         rango = "🌈🔥 Gran maestro arcoiris";
-                        recompensa += "<span style='font-size:40px'>🌌</span>";
+                        recompensa += "<span class='estrella-galaxi'>🌌</span>";
                     } else if (puntos >= 80) {
                         rango = "🌈 Heroico arcoiris";
-                        recompensa += "<span style='font-size:35px'>🌈</span>";
+                        recompensa += "<span class='estrella-arcoiris'>🌈</span>";
                     } else if (puntos >= 70) {
                         rango = "🟠🔥 Heroico élite";
                     } else if (puntos >= 60) {
@@ -177,15 +178,6 @@
                 console.error("Error al cargar los datos:", error);
                 document.getElementById("tablaPuntos").innerHTML = `<tr><td colspan='4'>Error al cargar los datos. Verifique la conexión.</td></tr>`;
             }
-        }
-        
-        function filtrarAlumnos() {
-            let input = document.getElementById("buscador").value.toLowerCase();
-            let filas = document.querySelectorAll("#tablaPuntos tr");
-            filas.forEach(fila => {
-                let nombre = fila.cells[0]?.textContent.toLowerCase();
-                fila.style.display = nombre.includes(input) ? "" : "none";
-            });
         }
         
         actualizarFecha();
