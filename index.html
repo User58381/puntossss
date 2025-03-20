@@ -110,17 +110,28 @@
                     return;
                 }
 
+                let alumnos = {};
+
                 rows.forEach((row) => {
                     let fecha = row.c[0]?.v || "";
                     let nombre = row.c[1]?.v || "Alumno";
                     let puntos = (!isNaN(parseInt(row.c[2]?.v))) ? parseInt(row.c[2].v) * 10 : 10;
                     let fechaConvertida = convertirFecha(fecha);
+                    let clave = `${fechaConvertida}-${nombre}`;
 
+                    if (alumnos[clave]) {
+                        alumnos[clave].puntos += puntos;
+                    } else {
+                        alumnos[clave] = { fecha: fechaConvertida, nombre, puntos };
+                    }
+                });
+
+                Object.values(alumnos).forEach(({ fecha, nombre, puntos }) => {
                     let rango = obtenerRango(puntos);
                     let recompensa = obtenerRecompensas(puntos);
 
                     let fila = `<tr>
-                        <td>${fechaConvertida}</td>
+                        <td>${fecha}</td>
                         <td>${nombre}</td>
                         <td>${puntos}</td>
                         <td class="brillo">${rango}</td>
